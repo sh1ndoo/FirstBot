@@ -1,40 +1,40 @@
-import requests
-from pprint import pprint
-import time
+from aiogram import Bot, Dispatcher
+from aiogram.filters import Command
+from aiogram.types import Message
+from requests import get
 
-API_URL = 'https://api.telegram.org/bot'
+# Вместо BOT TOKEN HERE нужно вставить токен вашего бота, полученный у @BotFather
 BOT_TOKEN = '6894279538:AAEqmWRysUGEytsUuGa_B7g-Jm1YxQycCgQ'
-TEXT = 'c премиумом? Богатый чтоле? Котика тогда не будет'
-TEXT_2 = 'Нет денег на прем:( Ну держи тогда котика хотя бы'
-MAX_COUNTER = 500
+
+# Создаем объекты бота и диспетчера
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
 
-API_CAT = 'https://api.thecatapi.com/v1/images/search'
+# Этот хэндлер будет срабатывать на команду "/start"
+@dp.message(Command(commands=["start"]))
+async def process_start_command(message: Message):
+    await message.answer('Привет!\nМеня зовут Эхо-бот!\nНапиши мне что-нибудь')
 
-offset = -2
-counter = 0
-chat_id: int
+
+# Этот хэндлер будет срабатывать на команду "/help"
+@dp.message(Command(commands=['help']))
+async def process_help_command(message: Message):
+    await message.answer(
+        'Напиши мне что-нибудь и в ответ '
+        'я пришлю тебе твое сообщение'
+    )
+
+@dp.message(Command(commands=['check_prem']))
+async def process_prem(message):
+    if get('https://api.telegram.org/bot6894279538:AAEqmWRysUGEytsUuGa_B7g-Jm1YxQycCgQ/getUpdates?offset=-1').json()['result'][0]['message']['from']['is_premium']:
+        await message.answer('123')
 
 
-while counter < MAX_COUNTER:
+@dp.message()
+async def send_echo(message: Message):
+    await message.reply(text=message.text)
 
-    print('attempt =', counter)  #Чтобы видеть в консоли, что код живет
 
-    updates = requests.get(f'{API_URL}{BOT_TOKEN}/getUpdates?offset={offset + 1}').json()
-    if updates['result']:
-        for result in updates['result']:
-            offset = result['update_id']
-            chat_id = result['message']['from']['id']
-            name = result['message']['from']['first_name']
-            if result['message']['from']['is_premium']:
-                requests.get(f'{API_URL}{BOT_TOKEN}/sendMessage?chat_id={chat_id}&text={', '.join((name, TEXT_2))}')
-                cat = requests.get(API_CAT).json()[0]['url']
-                requests.get(f'{API_URL}{BOT_TOKEN}/sendPhoto?chat_id={chat_id}&photo={cat}')
-                print(name)
-            else:
-                requests.get(f'{API_URL}{BOT_TOKEN}/sendMessage?chat_id={chat_id}&text={' '.join((name, TEXT_2))}')
-                cat = requests.get(API_CAT).json()[0]['url']
-                requests.get(f'{API_URL}{BOT_TOKEN}/sendPhoto?chat_id={chat_id}&photo={cat}')
-
-    time.sleep(1)
-    counter += 1
+if __name__ == '__main__':
+    dp.run_polling(bot)
